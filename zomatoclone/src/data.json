@@ -1,0 +1,30 @@
+[
+  {
+    "foodName": "Hakka Noodles",
+    "foodPath": "https://b.zmtcdn.com/data/dish_photos/739/bfe074691b78771cd272ddf2f3691739.jpg?output-format=webp",
+    "price": 140,
+    "count": 0,
+    "type": "Noodles"
+  },
+  {
+    "foodName": "Burger",
+    "foodPath": "https://b.zmtcdn.com/data/pictures/2/19561122/5685725b5c1c267af0efa16119efd6f3_o2_featured_v2.jpg",
+    "price": 125,
+    "count": 0,
+    "type": "Burger"
+  },
+  {
+    "foodName": "Biryani",
+    "foodPath": "https://b.zmtcdn.com/data/pictures/chains/5/19281155/1aab6ed03346abae636bdac9cb1626b1_o2_featured_v2.jpg?output-format=webp",
+    "price": 220,
+    "count": 0,
+    "type": "Biryani"
+  },
+  {
+    "foodName": "Veg Steam Momos",
+    "foodPath": "https://b.zmtcdn.com/data/pictures/7/19845167/e0c040e9ba75caf023de2531e97d9822_o2_featured_v2.jpg?output-format=webp",
+    "price": 60,
+    "count": 0,
+    "type": "Momos"
+  }
+]
