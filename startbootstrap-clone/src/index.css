@@ -1,0 +1,186 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+.nav-main {
+  width: 100%;
+}
+
+.nav-item-pos {
+  display: flex;
+  flex-direction: row;
+  justify-content: end;
+  width: 100%;
+}
+
+.nav-item-child {
+  display: flex;
+  flex-direction: row;
+}
+.nav-item-child a {
+  text-decoration: none;
+  margin: 2 0;
+  color: white;
+  display: block;
+  /* font-weight: 550 */
+  padding: 10px 18px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.nav-item-child a :hover {
+  color: rgba(52, 215, 20, 0.68);
+}
+
+.nav-sm-custom {
+  width: auto;
+  background-color: #282828;
+  color: white;
+}
+.nav-sm-custom a {
+  text-decoration: none;
+  color: white;
+}
+.nav-sm-custom a :hover {
+  color: rgba(52, 215, 20, 0.68);
+}
+
+.nav-text {
+  margin: 2 0;
+  color: white;
+  display: block;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nav-text :hover {
+  color: "orange";
+  /* transition: "all 0.5s", */
+}
+
+.banner-main {
+  background-color: black;
+  background-image: url("https://startbootstrap.github.io/startbootstrap-agency/assets/img/header-bg.jpg");
+  /* height: 100vh; */
+  /* marginTop: -10px; */
+  padding: 240px 0 190px;
+  background-position: center;
+  background-size: cover;
+  /* background-repeat: no-repeat; */
+}
+
+/* old css----------------- */
+/* .hoverwrap {
+  position: relative; 
+  cursor: pointer;
+  max-width: 500px; 
+} */
+
+/* .hoverwrap img {
+  width: 100%;
+} */
+
+/* .hovercap {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  background-color: rgba(52, 215, 20, 0.68);
+} */
+
+/* .hovercap {
+  visibility: none;
+  opacity: 0;
+  font-size: 100px;
+  transition: opacity 0.3s;
+} */
+
+/* .hoverwrap:hover .hovercap {
+  visibility: visible;
+  opacity: 1;
+} */
+
+/* new css ------------------- */
+.hoverwrap {
+  position: relative;
+  cursor: pointer;
+  max-width: 500px;
+}
+
+/* .image {
+  display: block;
+  width: 100%;
+  height: auto;
+} */
+
+.hoverwrap img {
+  display: block;
+  width: 100%;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  opacity: 0;
+  transition: 0.5s ease;
+  background-color: rgba(52, 215, 20, 0.68);
+}
+
+.hoverwrap:hover .overlay {
+  opacity: 1;
+}
+
+.hovercap {
+  color: white;
+  font-size: 100px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.contact-form {
+  border: none;
+  /* border-bottom: 2px solid #c7d5e1; */
+  background-color: white;
+  /* border-bottom: 1px solid #fff; */
+  outline: none;
+  width: 100% !important;
+  /* font-size: larger; */
+  padding: 20px !important;
+  border-radius: 4px;
+}
+
+.about-para {
+  color: #6c757d;
+  font-style: initial;
+}
+.btn-custom {
+  background-color: #ffc800;
+  font-size: 18px;
+  border: none;
+}
