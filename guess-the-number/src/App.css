@@ -29,7 +29,13 @@
 .App-link {
   color: #61dafb;
 }
-
+@media screen and (max-width: 420px) {
+  .check-btn{
+    position: fixed;
+    top: 80px;
+    right: 16px;
+  }
+}
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
