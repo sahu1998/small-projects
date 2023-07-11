@@ -102,7 +102,7 @@ const GuessTheNumber = () => {
                 alt="Think Smartly..."
               />
             </div>
-            <div className="flex-grow-1 text-end">
+            <div className="flex-grow-1 text-end check-btn">
               <span className="px-2 text-warning">{situation}</span>
               <button className="btn btn-primary my-5" type="submit">
                 Check
