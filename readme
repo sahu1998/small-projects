@@ -1,0 +1,12 @@
+BOOTSTRAP: 
+INSTALL: npm i bootstrap
+IMPORT: import "bootstrap/dist/css/bootstrap.min.css";
+IMPORT: import 'bootstrap/dist/js/bootstrap.bundle.min'; 
+
+BOOTSTRAP ICON: 
+INSTALL: npm i bootstrap-icons
+IMPORT: import "bootstrap-icons/font/bootstrap-icons.css";
+
+REDUX:
+npm i redux react-redux @reduxjs/toolkit
+
