@@ -10,3 +10,670 @@ IMPORT: import "bootstrap-icons/font/bootstrap-icons.css";
 REDUX:
 npm i redux react-redux @reduxjs/toolkit
 
+const mongoose = require("mongoose");
+// const { CertificationParameters } = require("./certificateParametersModel");
+const { ActivityLog } = require("./activityLogModel");
+const moment = require("moment");
+const { Parameters } = require("./parameterModel");
+const { itemPostBulkItemData, itemBulk } = require("./ItemBulkUploadErrorLog");
+const { commonBulkModel } = require("./commonBulkUpload");
+const ObjectId = mongoose.Types.ObjectId;
+
+//this is a model for Items
+
+const itemSchema = mongoose.Schema(
+  {
+    itemName: { type: String },
+    cirtificate_type: { type: Array },
+    basicParameter: { type: Array },
+    load_Testing: { type: Array },
+    NDT: { type: Array },
+    visual: { type: Array },
+    Calibration: { type: Array },
+    currentStatus: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true, strict: false }
+);
+
+const Items = mongoose.model("items", itemSchema);
+
+const addItemsData = async (obj) => {
+  try {
+    let customRegex = new RegExp(`^${obj.itemName}$`);
+    const itemDataFind = await Items.findOne({
+      itemName: { $regex: customRegex, $options: "i" },
+      isDeleted: false,
+    });
+    if (itemDataFind == null) {
+      const data = await Items.create(obj);
+      return {
+        data: data,
+        status: 200,
+        message: "success",
+        Bymodel: "itemMaster",
+        logMessage: "Item Master Added",
+        logTitle:data.itemName + " Added",
+        ByType: "add",
+      };
+    } else {
+      return {
+        data: "",
+        status: 409,
+        message: "Item Already Exist",
+      };
+    }
+  } catch (error) {
+    return { status: 400, message: error.message };
+  }
+};
+
+const getItemsData = async (pageNo, pageSize, searchKey) => {
+  try {
+    const data = await Items.aggregate([
+      { $sort: { _id: -1 } },
+      {
+        $match: {
+          itemName: { $regex: searchKey, $options: "i" },
+          isDeleted: false,
+        },
+      },
+      {
+        $limit: parseInt(pageNo) * parseInt(pageSize),
+      },
+      {
+        $skip: parseInt(pageNo - 1) * parseInt(pageSize),
+      },
+    ]);
+    const count = await Items.find({
+      itemName: { $regex: searchKey, $options: "i" },
+      isDeleted: false,
+    }).count();
+    return { data, count, status: 200 };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const deleteItemData = async (id) => {
+  try {
+    const data = await Items.findByIdAndUpdate(id, {
+      $set: { isDeleted: true },
+    });
+    return {
+      data,
+      status: 200,
+      Bymodel: "itemMaster",
+      logMessage: "Item Master deleted",
+      logTitle: data.itemName + " Deleted",
+      ByType: "delete",
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      status: 400,
+    };
+  }
+};
+
+const updateItemData = async (id, values, updateStatus) => {
+  try {
+    if (!updateStatus) {
+      let customRegex = new RegExp(`^${values.itemName}$`);
+      const itemDataFind = await Items.findOne({
+        _id: { $ne: id },
+        itemName: { $regex: customRegex, $options: "i" },
+        isDeleted: false,
+      });
+      if (itemDataFind) {
+        return {
+          data: "",
+          status: 409,
+          message: "Item Already Exist",
+        };
+      }
+    }
+    const data = await Items.findByIdAndUpdate(id, values);
+    return {
+      data,
+      status: 200,
+      message: "success",
+      Bymodel: "itemMaster",
+      logTitle: updateStatus
+        ? values.currentStatus === "active"
+          ? data.itemName + " Activated"
+          : data.itemName + " Deactivated"
+        : values.itemName + " Updated",
+      logMessage: updateStatus
+        ? values.currentStatus === "active"
+          ? data.itemName + " activated"
+          : data.itemName + " deactivated"
+        : values.itemName + " updated",
+      ByType: "update",
+    };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const getItemsDataByDate = async ({ startDate, endDate, pageNo, pageSize }) => {
+  try {
+    const d = moment(new Date(startDate)).format("YYYY-MM-DD") + " " + "00:00";
+    const c = moment(new Date(endDate)).format("YYYY-MM-DD") + " " + "23:59";
+    const data = await Items.aggregate([
+      { $sort: { _id: -1 } },
+      {
+        $match: {
+          createdAt: { $gte: new Date(d), $lte: new Date(c) },
+          isDeleted: false,
+        },
+      },
+      {
+        $limit: parseInt(pageNo) * parseInt(pageSize),
+      },
+      {
+        $skip: parseInt(pageNo - 1) * parseInt(pageSize),
+      },
+    ]);
+    const count = await Items.find({
+      createdAt: { $gte: new Date(d), $lte: new Date(c) },
+      isDeleted: false,
+    }).count();
+    return { data, count, status: 200 };
+  } catch (error) {
+    return { error: error.message, status: 400 };
+  }
+};
+
+const getItemDataById = async (id) => {
+  try {
+    // const temp = await Parameters.findById(id);
+    const data = await Items.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(id) } },
+      {
+        $lookup: {
+          from: "logins",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          itemName: 1,
+          cirtificate_type: 1,
+          currentStatus: 1,
+          createdBy: 1,
+          createdAt: 1,
+          createdByName: { $arrayElemAt: ["$creator.name", 0] },
+          basicParameter: 1,
+          load_Testing: 1,
+          NDT: 1,
+          visual: 1,
+          Calibration: 1,
+        },
+      },
+    ]);
+
+    return {
+      data: data?.[0],
+      message: "success",
+      status: 200,
+    };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const getAllActiveItemData = async () => {
+  try {
+    const data = await Items.find({
+      currentStatus: "active",
+      isDeleted: false,
+    }).sort({ _id: -1 });
+    return { data, status: 200 };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const itemMasterbulkUpload = async (values, userId, commonBulkId) => {
+  try {
+    let updateValue = values;
+    let data;
+    await values.map(async (dt, i) => {
+      if (dt?.basicParameter?.length > 0) {
+        dt?.basicParameter.map(async (dtt, idx) => {
+          data = await Parameters.findOne({
+            parameterName: dtt.name,
+            currentStatus: "active",
+          });
+          if (data) {
+            data._doc["isReq"] = dtt.bolVal == "Mandatory" ? true : false;
+
+            updateValue[i].basicParameter[idx] = data;
+          } else {
+            updateValue[i].basicParameter.splice(idx, 1);
+          }
+        });
+      } else if (dt?.load_Testing?.length) {
+        dt?.load_Testing.map(async (dtt, idx) => {
+          data = await Parameters.findOne({
+            parameterName: dtt.name,
+            currentStatus: "active",
+          });
+          if (data) {
+            data._doc["isReq"] = dtt.bolVal == "Mandatory" ? true : false;
+            updateValue[i].load_Testing[idx] = data;
+          } else {
+            updateValue[i].basicParameter.splice(idx, 1);
+          }
+        });
+      } else if (dt?.NDT?.length) {
+        dt?.NDT.map(async (dtt, idx) => {
+          data = await Parameters.findOne({
+            parameterName: dtt.name,
+            currentStatus: "active",
+          });
+          if (data) {
+            data._doc["isReq"] = dtt.bolVal == "Mandatory" ? true : false;
+            updateValue[i].NDT[idx] = data;
+          } else {
+            updateValue[i].basicParameter.splice(idx, 1);
+          }
+        });
+      } else if (dt?.visual?.length) {
+        dt?.visual.map(async (dtt, idx) => {
+          data = await Parameters.findOne({
+            parameterName: dtt.name,
+            currentStatus: "active",
+          });
+
+          if (data) {
+            data._doc["isReq"] = dtt.bolVal == "Mandatory" ? true : false;
+
+            updateValue[i].visual[idx] = data;
+          } else {
+            updateValue[i].basicParameter.splice(idx, 1);
+          }
+        });
+      } else if (dt?.Calibration?.length) {
+        dt?.Calibration.map(async (dtt, idx) => {
+          data = await Parameters.findOne({
+            parameterName: dtt.name,
+            currentStatus: "active",
+          });
+
+          if (data) {
+            data._doc["isReq"] = dtt.bolVal == "Mandatory" ? true : false;
+            updateValue[i].Calibration[idx] = data;
+          } else {
+            updateValue[i].basicParameter.splice(idx, 1);
+          }
+        });
+      }
+    });
+
+    var returnData;
+    updateValue.map(async (val) => {
+      const data = await Items.findOne({
+        itemName: val[0].itemName,
+        cirtificate_type: { $in: val[0]?.cirtificate_type },
+      });
+      if (!data && !val[0].error) {
+        returnData = await Items.create(val[0]);
+        await ActivityLog.create({
+          Bymodel: "itemMaster",
+          logTitle: returnData?.itemName + " Added",
+          logMessage: returnData?.itemName + " added",
+          userId: userId,
+          ByType: "add",
+          modelTypeId: returnData?._id,
+        });
+        const itemData = {
+          itemName: val[0]?.itemName,
+          Parameter: val[0]?.Parameter,
+          cirtificate_type: val[0]?.cirtificate_type,
+          basicParameter: val[0]?.basicParameter,
+          load_Testing: val[0]?.load_Testing,
+          NDT: val[0]?.NDT,
+          visual: val[0]?.visual,
+          Calibration: val[0]?.Calibration,
+          mandnonMand:val[0]?.mandnonMand,
+          currentStatus: val[0]?.currentStatus,
+          status: val[0].status,
+          commonBulkId: commonBulkId,
+        };
+        await itemPostBulkItemData(itemData);
+      } else {
+        const itemData = {
+          itemName: val[0]?.itemName,
+          Parameter: val[0]?.Parameter,
+          cirtificate_type: val[0]?.cirtificate_type,
+          basicParameter: val[0]?.basicParameter,
+          load_Testing: val[0]?.load_Testing,
+          NDT: val[0]?.NDT,
+          visual: val[0]?.visual,
+          Calibration: val[0]?.Calibration,
+          currentStatus: val[0]?.currentStatus,
+          mandnonMand:val[0]?.mandnonMand,
+          error: val[0].error ? val[0]?.error : "Item alread exists",
+          status: "Fail",
+          commonBulkId: commonBulkId,
+        };
+        await itemPostBulkItemData(itemData);
+      }
+    });
+
+    return { message: "Success", status: 200 };
+  } catch (error) {
+    return { error, message: "error", status: 400 };
+  }
+};
+
+const getItemErrorBulkDataModel = async (temp, pagesize, id, status) => {
+  try {
+    const data = await itemBulk.aggregate([
+      { $sort: { _id: -1 } },
+      { $match: { commonBulkId: ObjectId(id), status: status } },
+
+      {
+        $limit: parseInt(temp) * parseInt(pagesize),
+      },
+      {
+        $skip: parseInt(temp - 1) * parseInt(pagesize),
+      },
+    ]);
+    const count = await itemBulk.find({ commonBulkId: ObjectId(id),status: status }).count();
+    return {
+      data: data,
+      count,
+      status: 200,
+      message: "success",
+    };
+  } catch (error) {
+    return { status: 400, message: error.message };
+  }
+};
+
+module.exports = {
+  addItemsData,
+  getItemsData,
+  deleteItemData,
+  updateItemData,
+  getItemsDataByDate,
+  getItemDataById,
+  getAllActiveItemData,
+  Items,
+  itemMasterbulkUpload,
+  getItemErrorBulkDataModel,
+};
+
+
+
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+const mongoose = require("mongoose");
+const { ActivityLog } = require("./activityLogModel");
+const ObjectId = mongoose.Types.ObjectId;
+const moment = require("moment");
+const parameterSchema = mongoose.Schema(
+  {
+    parameterName: { type: String },
+    certificateType: { type: String },
+    parameterType: { type: String },
+    currentStatus: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+    itemId: { type: String },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true, strict: false }
+);
+
+const Parameters = mongoose.model("certificationParameters", parameterSchema);
+
+const addParameterData = async (obj) => {
+  try {
+    let customRegex = new RegExp(`^${obj.parameterName}$`);
+    let typeRegex = new RegExp(`^${obj.certificateType}$`);
+    const parameterDataFind = await Parameters.findOne({
+      parameterName: { $regex: customRegex, $options: "i" },
+      certificateType: { $regex: typeRegex, $options: "i" },
+      isDeleted: false,
+    },{_id: 1, parameterName: 1, parameterType: 1});
+    if (parameterDataFind == null) {
+      const data = await Parameters.create(obj);
+      return {
+        data: data,
+        status: 200,
+        message: "success",
+        Bymodel: "parameterMaster",
+        logTitle: data.parameterName + " Added",
+        logMessage: data.parameterName + " added",
+        ByType: "add",
+      };
+    } else {
+      return {
+        data: parameterDataFind,
+        status: 409,
+        message: "Parameter Already Exist",
+      };
+    }
+  } catch (error) {
+    return { status: 400, message: error.message };
+  }
+};
+
+const getParameterData = async (pageNo, pageSize, searchKey) => {
+  try {
+    const data = await Parameters.aggregate([
+      { $sort: { _id: -1 } },
+      {
+        $match: {
+          parameterName: { $regex: searchKey, $options: "i" },
+          isDeleted: false,
+        },
+      },
+      {
+        $limit: parseInt(pageNo) * parseInt(pageSize),
+      },
+      {
+        $skip: parseInt(pageNo - 1) * parseInt(pageSize),
+      },
+    ]);
+    const count = await Parameters.find({
+      parameterName: { $regex: searchKey, $options: "i" },
+      isDeleted: false,
+    }).count();
+    return { data, count, status: 200 };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const updateParameterData = async (id, values, updateStatus) => {
+  try {
+    if (!updateStatus) {
+      let customRegex = new RegExp(`^${values.parameterName}$`);
+      const parameterDataFind = await Parameters.findOne({
+        _id: { $ne: id },
+        parameterName: { $regex: customRegex, $options: "i" },
+        isDeleted: false,
+      });
+      if (parameterDataFind) {
+        return {
+          data: "",
+          status: 409,
+          message: "Parameter Already Exist",
+        };
+      }
+    }
+    const data = await Parameters.findByIdAndUpdate(id, values);
+    return {
+      data,
+      status: 200,
+      message: "success",
+      Bymodel: "parameterMaster",
+      logTitle: updateStatus
+        ? values.currentStatus === "active"
+          ? data.parameterName + " Activated"
+          : data.parameterName + " Deactivated"
+        : values.parameterName + " Updated",
+      logMessage: updateStatus
+        ? values.currentStatus === "active"
+          ? data.parameterName + " activated"
+          : data.parameterName + " deactivated"
+        : values.parameterName + " updated",
+      ByType: "update",
+    };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const getParameterDataById = async (id) => {
+  try {
+    // const temp = await Parameters.findById(id);
+    const data = await Parameters.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(id) } },
+      {
+        $lookup: {
+          from: "logins",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          parameterName: 1,
+          certificateType: 1,
+          parameterType: 1,
+          currentStatus: 1,
+          createdBy: 1,
+          createdAt: 1,
+          createdByName: { $arrayElemAt: ["$creator.name", 0] },
+        },
+      },
+    ]);
+
+    return {
+      data: data?.[0],
+      message: "success",
+      status: 200,
+    };
+  } catch (error) {
+    return { message: error.message, status: 400 };
+  }
+};
+
+const deleteParameterData = async (id, value) => {
+  try {
+    const data = await Parameters.findByIdAndUpdate(id, value);
+    return {
+      data,
+      status: 200,
+      Bymodel: "parameterMaster",
+      logTitle: data.parameterName + " Deleted",
+      logMessage: data.parameterName + " deleted",
+      ByType: "delete",
+    };
+  } catch (error) {
+    return {
+      error: error.message,
+      status: 400,
+    };
+  }
+};
+
+const getParametersDataByDate = async ({
+  startDate,
+  endDate,
+  pageNo,
+  pageSize,
+}) => {
+  try {
+    const d = moment(new Date(startDate)).format("YYYY-MM-DD") + " " + "00:00";
+    const c = moment(new Date(endDate)).format("YYYY-MM-DD") + " " + "23:59";
+    const data = await Parameters.aggregate([
+      { $sort: { _id: -1 } },
+      {
+        $match: {
+          createdAt: { $gte: new Date(d), $lte: new Date(c) },
+          isDeleted: false,
+        },
+      },
+      {
+        $limit: parseInt(pageNo) * parseInt(pageSize),
+      },
+      {
+        $skip: parseInt(pageNo - 1) * parseInt(pageSize),
+      },
+    ]);
+    const count = await Parameters.find({
+      createdAt: { $gte: d, $lte: c },
+      isDeleted: false,
+    }).count();
+    return { data, count, status: 200 };
+  } catch (error) {
+    return { error: error.message, status: 400 };
+  }
+};
+
+const getActiveParametersData = async (certificate, isEditing) => {
+  try {
+    let data;
+    if (isEditing == "true") {
+      data = await Parameters.find({ certificateType: certificate }).sort({
+        _id: -1,
+      });
+    } else {
+      data = await Parameters.find({
+        currentStatus: "active",
+        isDeleted: false,
+        certificateType: certificate,
+      }).sort({ _id: -1 });
+    }
+    return { data, status: 200, message: "Success" };
+  } catch (error) {
+    return { error: error.message, status: 400 };
+  }
+};
+const getParametersByCertificate = async (certificateType) => {
+  try {
+    const data = await Parameters.find({
+      currentStatus: "active",
+      certificateType: certificateType,
+    });
+    return { data, status: 200, message: "Success" };
+  } catch (error) {
+    return { error: error.message, status: 400 };
+  }
+};
+
+module.exports = {
+  addParameterData,
+  getParameterData,
+  updateParameterData,
+  getParameterDataById,
+  deleteParameterData,
+  getParametersDataByDate,
+  getActiveParametersData,
+  getParametersByCertificate,
+  Parameters,
+};
